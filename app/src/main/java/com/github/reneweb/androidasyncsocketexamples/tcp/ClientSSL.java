@@ -1,5 +1,7 @@
 package com.github.reneweb.androidasyncsocketexamples.tcp;
 
+import android.util.Log;
+
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.ConnectCallback;
@@ -18,6 +20,9 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 
 public class ClientSSL {
+
+    private static final String TAG = "TcpClientSsl";
+
     private String host;
     private int port;
 
@@ -41,7 +46,9 @@ public class ClientSSL {
     }
 
     private void handleConnectCompleted(Exception ex, final AsyncSocket socket) throws NoSuchAlgorithmException, KeyManagementException {
-        if(ex != null) throw new RuntimeException(ex);
+        if(ex != null) {
+            throw new RuntimeException(ex);
+        }
 
         //You would want to use a "real" trust manager, instead of one that ignores the certificates
         TrustManager[] trustManagers = new TrustManager[] { createTrustAllTrustManager() };
@@ -53,15 +60,23 @@ public class ClientSSL {
             new AsyncSSLSocketWrapper.HandshakeCallback() {
                 @Override
                 public void onHandshakeCompleted(Exception ex, final AsyncSSLSocket socket) {
-                    if(ex != null) throw new RuntimeException(ex);
+                    if(ex != null) {
+                        throw new RuntimeException(ex);
+                    }
+
                     socket.setWriteableCallback(new WritableCallback() {
                         @Override
                         public void onWriteable() {
+                            Log.i(TAG, "[TCP ClientSsl] Writing message");
+
                             Util.writeAll(socket, "Hello Server".getBytes(), new CompletedCallback() {
                                 @Override
                                 public void onCompleted(Exception ex) {
-                                    if (ex != null) throw new RuntimeException(ex);
-                                    System.out.println("[Client] Successfully wrote message");
+                                    if (ex != null) {
+                                        throw new RuntimeException(ex);
+                                    }
+
+                                    Log.i(TAG, "[TCP ClientSsl] Successfully wrote message");
                                 }
                             });
                         }
@@ -70,23 +85,40 @@ public class ClientSSL {
                     socket.setDataCallback(new DataCallback() {
                         @Override
                         public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                            System.out.println("[Client] Received Message " + new String(bb.getAllByteArray()));
+                            Log.i(TAG, "[TCP ClientSsl] Received Message: " + new String(bb.getAllByteArray()));
+
+                            Util.writeAll(socket, "Hello Server".getBytes(), new CompletedCallback() {
+                                @Override
+                                public void onCompleted(Exception ex) {
+                                    if (ex != null) {
+                                        throw new RuntimeException(ex);
+                                    }
+
+                                    Log.i(TAG, "[TCP ClientSsl] Successfully wrote message");
+                                }
+                            });
                         }
                     });
 
                     socket.setClosedCallback(new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
-                            if(ex != null) throw new RuntimeException(ex);
-                            System.out.println("[Client] Successfully closed connection");
+                            if(ex != null) {
+                                throw new RuntimeException(ex);
+                            }
+
+                            Log.i(TAG, "[TCP ClientSsl] Successfully closed connection");
                         }
                     });
 
                     socket.setEndCallback(new CompletedCallback() {
                         @Override
                         public void onCompleted(Exception ex) {
-                            if(ex != null) throw new RuntimeException(ex);
-                            System.out.println("[Client] Successfully end connection");
+                            if(ex != null) {
+                                throw new RuntimeException(ex);
+                            }
+
+                            Log.i(TAG, "[TCP ClientSsl] Successfully ended connection");
                         }
                     });
                 }
@@ -100,11 +132,11 @@ public class ClientSSL {
             }
 
             public void checkClientTrusted(X509Certificate[] certs, String authType) {
-
             }
 
             public void checkServerTrusted(X509Certificate[] certs, String authType) {
             }
         };
     }
+
 }

@@ -1,5 +1,7 @@
 package com.github.reneweb.androidasyncsocketexamples.udp;
 
+import android.util.Log;
+
 import com.koushikdutta.async.AsyncDatagramSocket;
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.ByteBufferList;
@@ -9,8 +11,11 @@ import com.koushikdutta.async.callback.DataCallback;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 public class Server {
+
+    private static final String TAG = "UdpServer";
 
     private InetSocketAddress host;
     private AsyncDatagramSocket asyncDatagramSocket;
@@ -22,33 +27,39 @@ public class Server {
 
     private void setup() {
 
-        try {
-            asyncDatagramSocket = AsyncServer.getDefault().openDatagram(host, true);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        asyncDatagramSocket = AsyncServer.getDefault().openDatagram(
+                host.getAddress(),
+                host.getPort(),
+                true);
 
         asyncDatagramSocket.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                System.out.println("[Server] Received Message " + new String(bb.getAllByteArray()));
+                Log.i(TAG, "[UDP Server] Received Message " + new String(bb.getAllByteArray()));
             }
         });
 
         asyncDatagramSocket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (ex != null) throw new RuntimeException(ex);
-                System.out.println("[Server] Successfully closed connection");
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Log.i(TAG, "[UDP Server] Successfully closed connection");
             }
         });
 
         asyncDatagramSocket.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (ex != null) throw new RuntimeException(ex);
-                System.out.println("[Server] Successfully end connection");
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Log.i(TAG, "[UDP Server] Successfully ended connection");
             }
         });
     }
+
 }

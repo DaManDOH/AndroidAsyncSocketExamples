@@ -1,14 +1,19 @@
 package com.github.reneweb.androidasyncsocketexamples.tcp;
 
+import android.util.Log;
+
 import com.koushikdutta.async.*;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.callback.DataCallback;
 import com.koushikdutta.async.callback.ListenCallback;
+import com.koushikdutta.async.callback.WritableCallback;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class Server {
+
+    private static final String TAG = "TcpServer";
 
     private InetAddress host;
     private int port;
@@ -35,30 +40,36 @@ public class Server {
 
             @Override
             public void onListening(AsyncServerSocket socket) {
-                System.out.println("[Server] Server started listening for connections");
+                Log.i(TAG, "[TCP Server] Server started listening for connections");
             }
 
             @Override
             public void onCompleted(Exception ex) {
-                if(ex != null) throw new RuntimeException(ex);
-                System.out.println("[Server] Successfully shutdown server");
+                if(ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Log.i(TAG, "[TCP Server] Successfully shutdown server");
             }
         });
     }
 
     private void handleAccept(final AsyncSocket socket) {
-        System.out.println("[Server] New Connection " + socket.toString());
+        Log.i(TAG, "[TCP Server] New Connection " + socket.toString());
 
         socket.setDataCallback(new DataCallback() {
             @Override
             public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                System.out.println("[Server] Received Message " + new String(bb.getAllByteArray()));
+                Log.i(TAG, "[TCP Server] Received Message: " + new String(bb.getAllByteArray()));
 
-                Util.writeAll(socket, "Hello Client".getBytes(), new CompletedCallback() {
+                Util.writeAll(socket, "Hello, Client!".getBytes(), new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
-                        if (ex != null) throw new RuntimeException(ex);
-                        System.out.println("[Server] Successfully wrote message");
+                        if (ex != null) {
+                            throw new RuntimeException(ex);
+                        }
+
+                        Log.i(TAG, "[TCP Server] Successfully wrote message");
                     }
                 });
             }
@@ -67,17 +78,31 @@ public class Server {
         socket.setClosedCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (ex != null) throw new RuntimeException(ex);
-                System.out.println("[Server] Successfully closed connection");
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Log.i(TAG, "[TCP Server] Successfully closed connection");
             }
         });
 
         socket.setEndCallback(new CompletedCallback() {
             @Override
             public void onCompleted(Exception ex) {
-                if (ex != null) throw new RuntimeException(ex);
-                System.out.println("[Server] Successfully end connection");
+                if (ex != null) {
+                    throw new RuntimeException(ex);
+                }
+
+                Log.i(TAG, "[TCP Server] Successfully end connection");
+            }
+        });
+
+        socket.setWriteableCallback(new WritableCallback() {
+            @Override
+            public void onWriteable() {
+                Log.i(TAG, "[TCP Server] In Server.WritableCallback::onWriteable()");
             }
         });
     }
+
 }
