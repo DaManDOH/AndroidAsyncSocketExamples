@@ -8,4 +8,17 @@
                 android:paddingBottom="@dimen/activity_vertical_margin"
                 tools:context=".MainActivity">
 
+    <Button
+        android:id="@+id/testTcpButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/test_tcp" />
+
+    <Button
+        android:id="@+id/testUdpButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/testTcpButton"
+        android:layout_marginTop="36dp"
+        android:text="@string/test_udp" />
 </RelativeLayout>

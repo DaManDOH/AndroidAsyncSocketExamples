@@ -4,19 +4,19 @@ import android.util.Log;
 
 import com.koushikdutta.async.AsyncServer;
 import com.koushikdutta.async.AsyncSocket;
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
 import com.koushikdutta.async.Util;
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.ConnectCallback;
-import com.koushikdutta.async.callback.DataCallback;
-import com.koushikdutta.async.callback.WritableCallback;
 
 import java.net.InetSocketAddress;
+import java.util.Locale;
+import java.util.stream.IntStream;
 
 public class Client {
 
     private static final String TAG = "TcpClient";
+    private static final String FIXED_WIDTH_LEADING_ZEROES = "%08d";
+//    private static final Integer TRANSMIT_ELEMENT_COUNT = 250000;
+//    private static final Integer TRANSMIT_ELEMENT_COUNT = 445;
+    private static final Integer TRANSMIT_ELEMENT_COUNT = 1500;
 
     private String host;
     private int port;
@@ -29,67 +29,63 @@ public class Client {
     }
 
     private void setup() {
-        AsyncServer.getDefault().connectSocket(new InetSocketAddress(host, port), new ConnectCallback() {
-            @Override
-            public void onConnectCompleted(Exception ex, final AsyncSocket socket) {
-                handleConnectCompleted(ex, socket);
-            }
-        });
+        final AsyncServer asyncServer = new AsyncServer();
+        asyncServer.connectSocket(
+                new InetSocketAddress(host, port),
+                this::handleConnectCompleted);
     }
 
-    private void handleConnectCompleted(Exception ex, final AsyncSocket socket) {
-        if (ex != null) {
-            throw new RuntimeException(ex);
+    private void handleConnectCompleted(Exception connectionCompletedEx, final AsyncSocket socket) {
+        if (connectionCompletedEx != null) {
+            throw new RuntimeException(connectionCompletedEx);
         }
 
         Log.i(TAG, "[TCP Client] Writing message");
 
-        Util.writeAll(socket, "Hello Server".getBytes(), new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    throw new RuntimeException(ex);
-                }
+        final StringBuilder messageBuilder = new StringBuilder();
+//        messageBuilder.append("Hello, Server...\r\n");
+        IntStream.range(0, TRANSMIT_ELEMENT_COUNT)
+                .mapToObj(oneInt -> String.format(
+                        Locale.US,
+                        FIXED_WIDTH_LEADING_ZEROES,
+                        oneInt))
+                .forEach(oneIntStr -> {
+                    messageBuilder
+                            .append(oneIntStr)
+                            .append(',');
+                });
+        messageBuilder.append("\r\n\r\n\r\n");
 
-                Log.i(TAG, "[TCP Client] Successfully wrote message");
+        Util.writeAll(
+                socket,
+                messageBuilder.toString().getBytes(),
+                writeEx -> {
+                    if (writeEx != null) {
+                        throw new RuntimeException(writeEx);
+                    }
+
+                    Log.i(TAG, "[TCP Client] Successfully wrote message");
+                });
+
+        socket.setDataCallback((emitter, bb) -> Log.i(TAG, "[TCP Client] Received Message: " + new String(bb.getAllByteArray())));
+
+        socket.setClosedCallback(closedEx -> {
+            if (closedEx != null) {
+                throw new RuntimeException(closedEx);
             }
+
+            Log.i(TAG, "[TCP Client] Successfully closed connection");
         });
 
-        socket.setDataCallback(new DataCallback() {
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                Log.i(TAG, "[TCP Client] Received Message " + new String(bb.getAllByteArray()));
+        socket.setEndCallback(endEx -> {
+            if (endEx != null) {
+                throw new RuntimeException(endEx);
             }
+
+            Log.i(TAG, "[TCP Client] Successfully end connection");
         });
 
-        socket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    throw new RuntimeException(ex);
-                }
-
-                Log.i(TAG, "[TCP Client] Successfully closed connection");
-            }
-        });
-
-        socket.setEndCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    throw new RuntimeException(ex);
-                }
-
-                Log.i(TAG, "[TCP Client] Successfully end connection");
-            }
-        });
-
-        socket.setWriteableCallback(new WritableCallback() {
-            @Override
-            public void onWriteable() {
-                Log.i(TAG, "[TCP Client] In Client.WritableCallback::onWriteable()");
-            }
-        });
+        socket.setWriteableCallback(() -> Log.i(TAG, "[TCP Client] In Client.WritableCallback::onWriteable()"));
     }
 
 }

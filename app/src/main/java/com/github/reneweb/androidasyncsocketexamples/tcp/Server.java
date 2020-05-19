@@ -2,14 +2,15 @@ package com.github.reneweb.androidasyncsocketexamples.tcp;
 
 import android.util.Log;
 
-import com.koushikdutta.async.*;
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.callback.DataCallback;
+import com.koushikdutta.async.AsyncServer;
+import com.koushikdutta.async.AsyncServerSocket;
+import com.koushikdutta.async.AsyncSocket;
+import com.koushikdutta.async.Util;
 import com.koushikdutta.async.callback.ListenCallback;
-import com.koushikdutta.async.callback.WritableCallback;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 public class Server {
 
@@ -45,7 +46,7 @@ public class Server {
 
             @Override
             public void onCompleted(Exception ex) {
-                if(ex != null) {
+                if (ex != null) {
                     throw new RuntimeException(ex);
                 }
 
@@ -57,52 +58,42 @@ public class Server {
     private void handleAccept(final AsyncSocket socket) {
         Log.i(TAG, "[TCP Server] New Connection " + socket.toString());
 
-        socket.setDataCallback(new DataCallback() {
-            @Override
-            public void onDataAvailable(DataEmitter emitter, ByteBufferList bb) {
-                Log.i(TAG, "[TCP Server] Received Message: " + new String(bb.getAllByteArray()));
+        socket.setDataCallback((emitter, bb) -> {
+            Log.i(TAG, "[TCP Server] emitter in DataCallback: " + emitter);
+            Log.i(TAG, "[TCP Server] emitter.isChunked(): " + emitter.isChunked());
+            byte[] allByteArray = bb.getAllByteArray();
+            Log.i(TAG, "[TCP Server] Received Message: " + new String(allByteArray));
 
-                Util.writeAll(socket, "Hello, Client!".getBytes(), new CompletedCallback() {
-                    @Override
-                    public void onCompleted(Exception ex) {
+
+            Util.writeAll(
+                    socket,
+                    "Hello, Client!".getBytes(),
+                    ex -> {
                         if (ex != null) {
                             throw new RuntimeException(ex);
                         }
 
                         Log.i(TAG, "[TCP Server] Successfully wrote message");
-                    }
-                });
-            }
+                    });
         });
 
-        socket.setClosedCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    throw new RuntimeException(ex);
-                }
-
-                Log.i(TAG, "[TCP Server] Successfully closed connection");
+        socket.setClosedCallback(ex -> {
+            if (ex != null) {
+                throw new RuntimeException(ex);
             }
+
+            Log.i(TAG, "[TCP Server] Successfully closed connection");
         });
 
-        socket.setEndCallback(new CompletedCallback() {
-            @Override
-            public void onCompleted(Exception ex) {
-                if (ex != null) {
-                    throw new RuntimeException(ex);
-                }
-
-                Log.i(TAG, "[TCP Server] Successfully end connection");
+        socket.setEndCallback(ex -> {
+            if (ex != null) {
+                throw new RuntimeException(ex);
             }
+
+            Log.i(TAG, "[TCP Server] Successfully end connection");
         });
 
-        socket.setWriteableCallback(new WritableCallback() {
-            @Override
-            public void onWriteable() {
-                Log.i(TAG, "[TCP Server] In Server.WritableCallback::onWriteable()");
-            }
-        });
+        socket.setWriteableCallback(() -> Log.i(TAG, "[TCP Server] In Server.WritableCallback::onWriteable()"));
     }
 
 }

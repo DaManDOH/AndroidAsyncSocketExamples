@@ -4,5 +4,7 @@
     <string name="app_name">AndroidAsyncSocketExamples</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="test_tcp">Test TCP</string>
+    <string name="test_udp">Test UDP</string>
 
 </resources>
